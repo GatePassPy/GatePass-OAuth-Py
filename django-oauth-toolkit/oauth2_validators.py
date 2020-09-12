@@ -12,13 +12,18 @@ class GatePassOAuth2Validator(OAuth2Validator):
     """
     def validate_refresh_token(self, refresh_token, client, request, *args, **kwargs):
         """
-        Validate a refresh token based upon created_date + OAUTH2_PROVIDER_MY_REFRESH_TOKEN_EXPIRE_SECONDS (custom setting variable)
+        Validate a refresh token based upon
+            created_date + OAUTH2_PROVIDER_MY_REFRESH_TOKEN_EXPIRE_SECONDS
+        Introduced a custom setting variable, 
+            because oauth2_provider wasn't allowing custom settings inside its scope
         """
         validation = super().validate_refresh_token(refresh_token, client, request, *args, **kwargs)
+
+        # Need extra check, if validation passed at earlier step
         if validation:
             refresh_token_instance = request.refresh_token_instance
             refresh_token_should_expire_at = timezone.now() - timedelta(seconds=settings.OAUTH2_PROVIDER_MY_REFRESH_TOKEN_EXPIRE_SECONDS)
-            # Custom Check, Ensure the refresh_token was NOT created before settings.OAUTH2_PROVIDER_MY_REFRESH_TOKEN_EXPIRE_SECONDS
+            # Custom Check to ensure that the refresh_token was NOT created before expiry margin
             if refresh_token_instance.created <= refresh_token_should_expire_at:
                 request.user = None
                 request.refresh_token = None
